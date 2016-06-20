@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -e
+
+# Configure: registry
+if [[ ! -e $EP_RUN ]] ; then
+	log "Configuring $(basename $0) for first run ..."
+
+	# Password ...
+	if [[ -n "$REGISTRY_GENERATE_PASSWORD" ]] ; then
+		log "Generating password ..."
+		REGISTRY_PASSWORD=$(pwgen --capitalize --numerals --secure -1 32)
+		install --mode=0400 /dev/null /root/registry_password
+		echo "REGISTRY_PASSWORD=$REGISTRY_PASSWORD" > /root/registry_password
+		export REGISTRY_PASSWORD=$(openssl passwd -apr1 $REGISTRY_PASSWORD)
+	elif [[ -z "$REGISTRY_PASSWORD" ]] ; then
+		log "Either REGISTRY_PASSWORD or REGISTRY_GENERATE_PASSWORD must be defined!"
+		exit 1
+	else
+		log "Importing password ..."
+	fi
+	log "	REGISTRY_PASSWORD=$REGISTRY_PASSWORD"
+	echo "admin:$REGISTRY_PASSWORD" > $REGISTRY_HOME/.htpasswd
+fi
+
