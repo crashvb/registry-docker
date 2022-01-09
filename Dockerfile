@@ -1,5 +1,17 @@
-FROM registry:2.3
-MAINTAINER Richard Davis <crashvb@gmail.com>
+FROM registry:2.7.1@sha256:36cb5b157911061fb610d8884dc09e0b0300a767a350563cbfd88b4b85324ce4
+ARG org_opencontainers_image_created=undefined
+ARG org_opencontainers_image_revision=undefined
+LABEL \
+	org.opencontainers.image.authors="Richard Davis <crashvb@gmail.com>" \
+	org.opencontainers.image.base.digest="sha256:36cb5b157911061fb610d8884dc09e0b0300a767a350563cbfd88b4b85324ce4" \
+	org.opencontainers.image.base.name="registry:2.7.1" \
+	org.opencontainers.image.created="${org_opencontainers_image_created}" \
+	org.opencontainers.image.description="A secure private docker registry." \
+	org.opencontainers.image.licenses="Apache-2.0" \
+	org.opencontainers.image.source="https://github.com/crashvb/registry-docker" \
+	org.opencontainers.image.revision="${org_opencontainers_image_revision}" \
+	org.opencontainers.image.title="crashvb/registry" \
+	org.opencontainers.image.url="https://github.com/crashvb/registry-docker"
 
 USER root
 
