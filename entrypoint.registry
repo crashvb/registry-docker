@@ -6,16 +6,71 @@ set -e
 if [[ ! -e $EP_RUN ]] ; then
 	log "Configuring $(basename $0) for first run ..."
 
-	# Generate password ...
-	if [[ -z "$REGISTRY_PASSWORD" ]] ; then
-		log "Generating REGISTRY_PASSWORD ..."
-		REGISTRY_PASSWORD=$(pwgen --capitalize --numerals --secure -1 32)
-		install --mode=0400 /dev/null /root/registry_password
-		echo "REGISTRY_PASSWORD=$REGISTRY_PASSWORD" > /root/registry_password
-		export REGISTRY_PASSWORD=$(openssl passwd -apr1 $REGISTRY_PASSWORD)
+	# Generate keypairs ...
+	if [[ -e $EP_SECRETS_ROOT/registryca.crt && -e $EP_SECRETS_ROOT/registry.crt && -e $EP_SECRETS_ROOT/registry.key ]] ; then
+		log "Importing registryca.crt, registry.crt, and registry.key from secrets ..."
 	else
-		log "Importing REGISTRY_PASSWORD ..."
+		# Note: Key size must be >= 3072 for "HIGH" security:
+		export REGISTRY_CERT_DAYS=${REGISTRY_CERT_DAYS:-30}
+		export REGISTRY_KEY_SIZE=${REGISTRY_KEY_SIZE:-4096}
+
+		log "Generating registryca.crt, registry.crt, and registry.key in secrets ..."
+
+		log "	certificate authority"
+		openssl genrsa \
+			-out /dev/shm/registryca.key \
+			$REGISTRY_KEY_SIZE
+		openssl req \
+			-days $REGISTRY_CERT_DAYS \
+			-key /dev/shm/registryca.key \
+			-new \
+			-nodes \
+			-out $EP_SECRETS_ROOT/registryca.crt \
+			-sha256 \
+			-subj "/CN=registry ca" \
+			-x509
+
+		log "	server certificate"
+		openssl genrsa \
+			-out $EP_SECRETS_ROOT/registry.key \
+			$REGISTRY_KEY_SIZE
+		openssl req \
+			-key $EP_SECRETS_ROOT/registry.key \
+			-new \
+			-nodes \
+			-out /dev/shm/registry.csr \
+			-sha256 \
+			-subj "/CN=registry server"
+		openssl x509 \
+			-CA $EP_SECRETS_ROOT/registryca.crt \
+			-CAkey /dev/shm/registryca.key \
+			-CAcreateserial \
+			-days $REGISTRY_CERT_DAYS \
+			-in /dev/shm/registry.csr \
+			-out $EP_SECRETS_ROOT/registry.crt \
+			-req \
+			-sha256
+
+		rm /dev/shm/{registryca.key,registry.csr} $EP_SECRETS_ROOT/registryca.srl
+
 	fi
-	echo "admin:$REGISTRY_PASSWORD" > $REGISTRY_HOME/.htpasswd
+	install -g root -m 0640 -o root $EP_SECRETS_ROOT/registry.key /etc/ssl/private/
+	install -g root -m 0644 -o root $EP_SECRETS_ROOT/registry{,ca}.crt /etc/ssl/certs/
+
+	ln -s /etc/ssl/certs/registryca.crt /usr/share/ca-certificates/
+	echo registryca.crt >> /etc/ca-certificates.conf
+	update-ca-certificates
+
+	# .htpasswd ...
+	log "Generating: .htpasswd ..."
+	install -g root -m 0644 -o root /dev/null $REGISTRY_AUTH_HTPASSWD_PATH
+	export REGISTRY_USERS=${REGISTRY_USERS:=admin}
+	for i in $(echo $REGISTRY_USERS | sed --expression="s/,/ /g"); do
+		user=${i,,}
+		log "	$user"
+		generate_password "registry_${user}"
+		var="REGISTRY_${user^^}_PASSWORD"
+		htpasswd -bB $REGISTRY_AUTH_HTPASSWD_PATH "${user}" "${!var}"
+	done
 fi
 

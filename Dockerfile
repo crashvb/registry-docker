@@ -13,27 +13,33 @@ LABEL \
 	org.opencontainers.image.title="crashvb/registry" \
 	org.opencontainers.image.url="https://github.com/crashvb/registry-docker"
 
+# hadolint ignore=DL3002
 USER root
 
 # Install packages, download files ...
-ADD docker-* entrypoint /sbin/
-RUN docker-apt gettext pwgen wget
+COPY docker-* entrypoint /sbin/
+COPY entrypoint.sh /usr/local/lib/
+RUN apk add --no-cache bash && \
+	docker-apk apache2-utils gettext openssl pwgen wget
 
 # Configure: bash profile
-RUN sed --in-place "s/HISTSIZE=1000/HISTSIZE=9999/g" /root/.bashrc && \
-	sed --in-place "s/HISTFILESIZE=2000/HISTFILESIZE=99999/g" /root/.bashrc && \
-	echo "# --- Docker Bash Profile ---" >> /root/.bashrc && \
-	echo "set -o vi" >> /root/.bashrc && \
-	echo "PS1='\${debian_chroot:+(\$debian_chroot)}\\\\t \[\\\\033[0;31m\]\u\[\\\\033[00m\]@\[\\\\033[7m\]\h\[\\\\033[00m\] [\w]\\\\n\$ '" >> /root/.bashrc && \
-	touch ~/.hushlogin
+COPY bashrc.root /root/.bashrc
+# hadolint ignore=SC2016
+RUN sed -e "s|/ash|/bash|g" -i /etc/passwd && \
+	echo '[[ -n "$BASH_VERSION" && -f "$HOME/.bashrc" ]] && source "$HOME/.bashrc"' > /root/.profile
 
 # Configure: registry
-ENV REGISTRY_HOME=/var/lib/registry
-ENV REGISTRY_AUTH=htpasswd REGISTRY_AUTH_HTPASSWD_PATH=${REGISTRY_HOME}/.htpasswd REGISTRY_AUTH_HTPASSWD_REALM=Registry\ Secure\ Access
+ENV \
+	REGISTRY_AUTH=htpasswd \
+	REGISTRY_AUTH_HTPASSWD_PATH=/var/lib/registry/.htpasswd \
+	REGISTRY_AUTH_HTPASSWD_REALM=Registry\ Secure\ Access \
+	REGISTRY_HTTP_TLS_CERTIFICATE=/etc/ssl/certs/registry.crt \
+	REGISTRY_HTTP_TLS_KEY=/etc/ssl/private/registry.key
 
 # Configure: entrypoint
+# hadolint ignore=SC2174
 RUN mkdir --mode=0755 --parents /etc/entrypoint.d/
-ADD entrypoint.registry /etc/entrypoint.d/registry
+COPY entrypoint.registry /etc/entrypoint.d/registry
 
 ENTRYPOINT ["/sbin/entrypoint"]
-CMD ["/bin/registry", "/etc/docker/registry/config.yml"]
+CMD ["/bin/registry", "serve", "/etc/docker/registry/config.yml"]
