@@ -7,7 +7,7 @@ include makefile.config
 
 default: build
 
-build:
+build: Dockerfile
 	docker build --force-rm=true --tag=$(registry)$(namespace)/$(image):$(tag) $(buildargs) $(ARGS) .
 
 debug:
@@ -21,10 +21,10 @@ debug:
 		$(ARGS)
 
 logs:
-	docker logs --follow=true $(ARGS) $(name)
+	@docker logs --follow=true $(ARGS) $(name)
 
 remove:
-	docker rm --volumes=true $(ARGS) $(name)
+	-@docker rm --force=true --volumes=true $(ARGS) $(name)
 
 run:
 	docker run \
@@ -37,16 +37,16 @@ run:
 		$(ARGS)
 
 shell:
-	docker exec --interactive=true --tty=true $(name) /bin/login -f root -p $(ARGS)
+	@docker exec --interactive=true --tty=true $(name) /bin/login -f root -p $(ARGS)
 
 start:
-	docker start $(ARGS) $(name)
+	@docker start $(ARGS) $(name)
 
 status:
-	docker ps $(ARGS) --all=true --filter=name=$(name)
+	@docker ps $(ARGS) --all=true --filter=name=$(name)
 
 stop:
-	docker stop $(ARGS) $(name)
+	-@docker stop $(ARGS) $(name)
 
 test: test
 	docker create \
@@ -61,7 +61,7 @@ test: test
 	docker start --attach=true $(name)-test
 
 test-code: Dockerfile
-	docker run \
+	@docker run \
 		--interactive=true \
 		--rm=true \
 		hadolint/hadolint:latest-debian \

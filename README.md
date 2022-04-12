@@ -40,6 +40,9 @@ The embedded entrypoint script is located at `/etc/entrypoint.d/registry` and pe
 │     └─ registry
 ├─ run/
 │  └─ secrets/
+│     ├─ registry.crt
+│     ├─ registry.key
+│     ├─ registryca.crt
 │     └─ registry_<user>_password
 └─ var/
    └─ lib/
