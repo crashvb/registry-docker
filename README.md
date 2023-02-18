@@ -20,9 +20,15 @@ The embedded entrypoint script is located at `/etc/entrypoint.d/registry` and pe
 
  | Variable | Default Value | Description |
  | -------- | ------------- | ----------- |
- | REGISTRY\_CERT\_DAYS | 30 | Validity period of any generated PKI certificates. |
- | REGISTRY\_KEY\_SIZE | 4096 | Key size of any generated PKI keys. |
  | REGISTRY\_USERS | admin | The list of users to be allowed access. |
+
+## Healthcheck Scripts
+
+### registry
+
+The embedded healthcheck script is located at `/etc/healthcheck.d/registry` and performs the following actions:
+
+1. Verifies that registry is operational.
 
 ## Standard Configuration
 
@@ -36,7 +42,9 @@ The embedded entrypoint script is located at `/etc/entrypoint.d/registry` and pe
 │  ├─ docker/
 │  │  └─ registry/
 │  │     └─ config.yml
-│  └─ entrypoint.d/
+│  ├─ entrypoing.d/
+│  │  └─ registry
+│  └─ healthcheck.d/
 │     └─ registry
 ├─ run/
 │  └─ secrets/

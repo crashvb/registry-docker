@@ -1,10 +1,12 @@
-FROM registry:2.7.1@sha256:36cb5b157911061fb610d8884dc09e0b0300a767a350563cbfd88b4b85324ce4
+FROM crashvb/base:22.04-202302200203@sha256:92b673840a3108cf94c45c7cd755d164725fcdcb40e74c94c8432582039d8540 AS parent
+
+FROM registry:2.8.1@sha256:a001a2f72038b13c1cbee7cdd2033ac565636b325dfee98d8b9cc4ba749ef337
 ARG org_opencontainers_image_created=undefined
 ARG org_opencontainers_image_revision=undefined
 LABEL \
 	org.opencontainers.image.authors="Richard Davis <crashvb@gmail.com>" \
-	org.opencontainers.image.base.digest="sha256:36cb5b157911061fb610d8884dc09e0b0300a767a350563cbfd88b4b85324ce4" \
-	org.opencontainers.image.base.name="registry:2.7.1" \
+	org.opencontainers.image.base.digest="sha256:a001a2f72038b13c1cbee7cdd2033ac565636b325dfee98d8b9cc4ba749ef337" \
+	org.opencontainers.image.base.name="registry:2.8.1" \
 	org.opencontainers.image.created="${org_opencontainers_image_created}" \
 	org.opencontainers.image.description="A secure private docker registry." \
 	org.opencontainers.image.licenses="Apache-2.0" \
@@ -17,10 +19,13 @@ LABEL \
 USER root
 
 # Install packages, download files ...
-COPY docker-* entrypoint /sbin/
-COPY entrypoint.sh /usr/local/lib/
+COPY --from=parent /sbin/entrypoint /sbin/healthcheck /sbin/
+COPY --from=parent /usr/local/lib/entrypoint.sh /usr/local/lib/
+COPY alpine-fixes docker-* /sbin/
+# hadolint ignore=DL3018
 RUN apk add --no-cache bash && \
-	docker-apk apache2-utils gettext openssl pwgen wget
+	docker-apk apache2-utils gettext openssl pwgen wget && \
+	alpine-fixes
 
 # Configure: bash profile
 COPY bashrc.root /root/.bashrc
@@ -38,8 +43,13 @@ ENV \
 
 # Configure: entrypoint
 # hadolint ignore=SC2174
-RUN mkdir --mode=0755 --parents /etc/entrypoint.d/
+RUN mkdir --mode=0755 --parents /etc/entrypoint.d/ /etc/healthcheck.d/
 COPY entrypoint.registry /etc/entrypoint.d/registry
+
+# Configure: healthcheck
+COPY healthcheck.registry /etc/healthcheck.d/registry
+
+HEALTHCHECK CMD /sbin/healthcheck
 
 ENTRYPOINT ["/sbin/entrypoint"]
 CMD ["/bin/registry", "serve", "/etc/docker/registry/config.yml"]
