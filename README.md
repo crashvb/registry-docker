@@ -22,14 +22,6 @@ The embedded entrypoint script is located at `/etc/entrypoint.d/registry` and pe
  | -------- | ------------- | ----------- |
  | REGISTRY\_USERS | admin | The list of users to be allowed access. |
 
-## Healthcheck Scripts
-
-### registry
-
-The embedded healthcheck script is located at `/etc/healthcheck.d/registry` and performs the following actions:
-
-1. Verifies that registry is operational.
-
 ## Standard Configuration
 
 ### Container Layout
