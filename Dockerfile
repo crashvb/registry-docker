@@ -1,4 +1,4 @@
-FROM crashvb/base:22.04-202303031605@sha256:ffa63321cadb7fdc937508b2976c6f919576bcbe93122a27fded24343d818315 AS parent
+FROM crashvb/base:22.04-202404121324@sha256:0514f8f7241795ce2567ec5a20e02fbd062511f6bbf0114504902184793c034d AS parent
 
 FROM registry:2.8.1@sha256:a001a2f72038b13c1cbee7cdd2033ac565636b325dfee98d8b9cc4ba749ef337
 ARG org_opencontainers_image_created=undefined
